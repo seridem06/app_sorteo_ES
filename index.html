@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sorteo RUTA D - Lógica de Bloqueo</title>
+    <title>Sorteo Configurable - VILLA y RUTA D</title>
     <style>
         /* --- ESTILOS GENERALES --- */
         body {
@@ -38,9 +38,29 @@
             display: flex;
             flex-direction: column;
         }
-
-        .label-input { font-size: 14px; font-weight: bold; margin-bottom: 5px; }
         
+        /* PANEL CONFIGURACIÓN (NUEVO) */
+        .panel-config {
+            background-color: #f0f0f0;
+            border: 2px dashed #555;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-top: 5px;
+        }
+
+        .label-input { font-size: 14px; font-weight: bold; margin-bottom: 2px; }
+        .label-small { font-size: 12px; font-weight: bold; color: #555; }
+        
+        .input-config {
+            padding: 3px;
+            border: 1px solid #777;
+            text-align: center;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
         #input-limite {
             width: 50px;
             padding: 4px;
@@ -51,7 +71,7 @@
 
         .textarea-lista {
             width: 100%;
-            height: 150px;
+            height: 120px; /* Un poco menos alto para dar espacio a la config */
             box-sizing: border-box;
             border: 1px solid #777;
             padding: 5px;
@@ -64,23 +84,49 @@
             color: #dc3545;
             font-weight: bold;
             text-align: center;
-            margin: 10px 0;
-            font-size: 14px;
+            margin: 5px 0;
+            font-size: 13px;
         }
 
+        /* BOTONES */
         .btn-azul {
             background-color: #007bff;
             color: white;
             font-weight: bold;
             border: none;
-            padding: 12px;
+            padding: 10px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 13px;
+            width: 100%;
+            border-radius: 4px;
+            margin-bottom: 5px;
+        }
+        .btn-azul:disabled { background-color: #999; cursor: not-allowed; }
+        
+        .btn-gris-oscuro {
+            background-color: #555;
+            color: white;
+            font-weight: bold;
+            border: none;
+            padding: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            width: 100%;
+            border-radius: 3px;
+        }
+        .btn-gris-oscuro:hover { background-color: #333; }
+
+        .btn-rojo {
+            background-color: #dc3545;
+            color: white;
+            font-weight: bold;
+            border: none;
+            padding: 8px;
+            cursor: pointer;
+            font-size: 12px;
             width: 100%;
             border-radius: 4px;
         }
-        .btn-azul:disabled { background-color: #999; cursor: not-allowed; }
-        .btn-azul:hover:not(:disabled) { background-color: #0056b3; }
 
         /* VISOR DE ANIMACIÓN */
         .visor-animacion {
@@ -131,7 +177,6 @@
             width: 240px;
             border: 3px solid #000;
             background: #fff;
-            /* Scroll si la lista es muy larga */
             max-height: 800px; 
             overflow-y: auto;
         }
@@ -153,14 +198,12 @@
             font-weight: bold;
         }
         
-        /* Colores de Texto */
         .txt-azul { color: #0056b3; font-weight: bold; }
         .txt-rojo { color: #d90000; font-weight: bold; }
         
-        /* ESTADOS DE CELDA */
         .celda-normal { background-color: #fff; color: #000; }
         .celda-bloqueada { 
-            background-color: #00b050; /* Verde Imagen */
+            background-color: #00b050; 
             color: transparent; 
         }
 
@@ -177,7 +220,7 @@
 </head>
 <body>
 
-    <h2>Programa de Sorteo (Lógica de Bloqueo 7:25 - 9:05)</h2>
+    <h2>Programa de Sorteo (Con Configuración de Horario)</h2>
 
     <div class="contenedor-maestro">
 
@@ -202,9 +245,29 @@ E 120</textarea>
                 <div id="status-izq" class="status-text">LISTO: 5 a VILLA</div>
                 
                 <button id="btn-iniciar" class="btn-azul" onclick="iniciarSecuenciaCompleta()">SORTEAR 1 (VILLA)</button>
+                <button id="btn-reset" class="btn-rojo" onclick="resetearTodo()">RESETEAR / RESTAURAR</button>
             </div>
 
             <div class="visor-animacion" id="visor-izq"></div>
+            
+            <div class="panel-config">
+                <div style="text-align: center; font-weight: bold; font-size: 13px; margin-bottom: 5px;">CONFIGURAR HORARIO VILLA</div>
+                
+                <div style="display: flex; gap: 10px;">
+                    <div style="flex: 1;">
+                        <div class="label-small">INICIO:</div>
+                        <input type="time" id="input-hora-inicio" class="input-config" value="05:48">
+                    </div>
+                    <div style="flex: 1;">
+                        <div class="label-small">RANGO (min):</div>
+                        <input type="number" id="input-minutos" class="input-config" value="14" min="1">
+                    </div>
+                </div>
+                
+                <button class="btn-gris-oscuro" onclick="generarNuevoHorarioVilla()">APLICAR NUEVO HORARIO</button>
+                <div id="msg-horario" style="font-size: 10px; color: green; text-align: center; height: 12px;"></div>
+            </div>
+
         </div>
 
         <div class="columna-villa">
@@ -237,8 +300,7 @@ E 120</textarea>
     </div>
 
     <script>
-        // --- 1. DEFINICIÓN DEL HORARIO COMPLETO Y BLOQUEOS ---
-        // 'lock: true' significa celda verde (se salta).
+        // --- 1. DATOS INICIALES ---
         const HORARIO_MAESTRO = [
             {t:'VILLA', h:'5:25', lock: false}, {t:'D', h:'5:35', lock: false},
             {t:'VILLA', h:'5:45', lock: false}, {t:'D', h:'5:55', lock: false},
@@ -246,29 +308,24 @@ E 120</textarea>
             {t:'VILLA', h:'6:25', lock: false}, {t:'D', h:'6:35', lock: false},
             {t:'VILLA', h:'6:45', lock: false}, {t:'D', h:'6:55', lock: false},
             {t:'VILLA', h:'7:05', lock: false}, {t:'D', h:'7:15', lock: false},
-            
-            // --- ZONA DE BLOQUEO (RETORNO) ---
-            {t:'VILLA', h:'7:25', lock: true},  // Bloqueado
-            {t:'D',     h:'7:35', lock: false}, // Pasa
-            {t:'VILLA', h:'7:45', lock: true},  // Bloqueado
-            {t:'D',     h:'7:55', lock: false}, // Pasa
-            {t:'VILLA', h:'8:05', lock: true},  // Bloqueado
-            {t:'D',     h:'8:15', lock: false}, // Pasa
-            {t:'VILLA', h:'8:25', lock: true},  // Bloqueado
-            {t:'D',     h:'8:35', lock: false}, // Pasa
-            {t:'VILLA', h:'8:45', lock: true},  // Bloqueado
-            {t:'D',     h:'8:55', lock: false}, // Pasa
-            {t:'VILLA', h:'9:05', lock: true},  // Bloqueado
-            
-            // --- RETORNO A NORMALIDAD ---
-            {t:'D',     h:'9:15', lock: false},
+            // ZONA BLOQUEO
+            {t:'VILLA', h:'7:25', lock: true}, {t:'D', h:'7:35', lock: false},
+            {t:'VILLA', h:'7:45', lock: true}, {t:'D', h:'7:55', lock: false},
+            {t:'VILLA', h:'8:05', lock: true}, {t:'D', h:'8:15', lock: false},
+            {t:'VILLA', h:'8:25', lock: true}, {t:'D', h:'8:35', lock: false},
+            {t:'VILLA', h:'8:45', lock: true}, {t:'D', h:'8:55', lock: false},
+            {t:'VILLA', h:'9:05', lock: true},
+            // RETORNO
+            {t:'D', h:'9:15', lock: false},
             {t:'VILLA', h:'9:25', lock: false}, {t:'D', h:'9:35', lock: false},
             {t:'VILLA', h:'9:45', lock: false}, {t:'D', h:'9:55', lock: false},
             {t:'VILLA', h:'10:05', lock: false},{t:'D', h:'10:15', lock: false},
             {t:'VILLA', h:'10:25', lock: false},{t:'D', h:'10:35', lock: false}
         ];
 
-        const HORAS_VILLA_IZQ = [
+        // Lista de horas Villa (Inicial por defecto)
+        // Ahora es LET para poder cambiarla
+        let horasVillaActuales = [
             "5:48", "6:02", "6:16", "6:30", "6:44",
             "7:00", "7:14", "7:28", "7:42", "7:56",
             "8:10", "8:24", "8:38", "8:52", "9:06"
@@ -280,23 +337,30 @@ E 120</textarea>
         const ulVilla = document.getElementById('lista-villa');
         const bodyTabla = document.getElementById('body-tabla');
         const btnIniciar = document.getElementById('btn-iniciar');
+        const btnReset = document.getElementById('btn-reset');
         const visorIzq = document.getElementById('visor-izq');
         const visorDer = document.getElementById('visor-der');
         const statusIzq = document.getElementById('status-izq');
         const statusDer = document.getElementById('status-der');
         const inputLimite = document.getElementById('input-limite');
+        
+        // Config inputs
+        const inputHoraInicio = document.getElementById('input-hora-inicio');
+        const inputMinutos = document.getElementById('input-minutos');
+        const msgHorario = document.getElementById('msg-horario');
 
+        // Estado
         let indexTabla = 0;
         let indexVilla = 0;
+        let backupListaIzq = "";
+        let backupListaDer = "";
+        let enCurso = false;
 
         // --- 2. GENERAR TABLA VISUAL ---
         function initTabla() {
             let html = '';
             HORARIO_MAESTRO.forEach((item, i) => {
-                // Definir colores texto
                 const claseTexto = item.t === 'VILLA' ? 'txt-azul' : 'txt-rojo';
-                
-                // Definir estado celda (Bloqueada o Normal)
                 const claseCelda = item.lock ? 'celda-bloqueada' : 'celda-normal';
                 
                 html += `<tr>
@@ -309,14 +373,88 @@ E 120</textarea>
         }
         initTabla();
 
-        // --- 3. SECUENCIA AUTOMÁTICA ---
+        // --- 3. LÓGICA DE HORARIO DINÁMICO ---
+        function generarNuevoHorarioVilla() {
+            const inicioStr = inputHoraInicio.value; // "HH:MM"
+            const intervalo = parseInt(inputMinutos.value);
+
+            if (!inicioStr || isNaN(intervalo)) {
+                alert("Por favor ingrese una hora válida y minutos.");
+                return;
+            }
+
+            // Parsear hora inicio
+            const [horas, minutos] = inicioStr.split(':').map(Number);
+            let fechaBase = new Date();
+            fechaBase.setHours(horas, minutos, 0, 0);
+
+            let nuevasHoras = [];
+            // Generamos suficientes horas (ej. 30) para cubrir cualquier sorteo
+            for (let i = 0; i < 30; i++) {
+                // Formatear HH:MM
+                let h = fechaBase.getHours().toString().padStart(2, '0'); // Quitar padStart si quieres "5:xx" en vez de "05:xx"
+                // Para coincidir con tu estilo (5:44 sin cero delante si es <10), hacemos esto:
+                if (fechaBase.getHours() < 10 && h.startsWith('0')) h = h.substring(1); 
+                
+                let m = fechaBase.getMinutes().toString().padStart(2, '0');
+                nuevasHoras.push(`${h}:${m}`);
+
+                // Sumar minutos
+                fechaBase.setMinutes(fechaBase.getMinutes() + intervalo);
+            }
+
+            horasVillaActuales = nuevasHoras;
+            
+            msgHorario.textContent = "¡Horario actualizado!";
+            setTimeout(() => { msgHorario.textContent = ""; }, 2000);
+            
+            // Si ya se reseteó la lista visual, limpiarla para evitar confusiones
+            if (!enCurso && ulVilla.children.length === 0) {
+                // Todo bien
+            } else if (!enCurso && ulVilla.children.length > 0) {
+                // Si había datos viejos, avisa que se aplicarán al reiniciar o siguiente sorteo
+            }
+        }
+
+
+        // --- 4. RESETEO ---
+        function resetearTodo() {
+            if (enCurso) {
+                if(!confirm("Sorteo en curso. ¿Reiniciar página?")) return;
+                location.reload(); 
+                return;
+            }
+
+            if (backupListaIzq) listaIzq.value = backupListaIzq;
+            if (backupListaDer) listaDer.value = backupListaDer;
+
+            ulVilla.innerHTML = '';
+            initTabla();
+            
+            visorIzq.textContent = "";
+            visorDer.textContent = "";
+
+            indexTabla = 0;
+            indexVilla = 0;
+
+            statusIzq.textContent = "LISTO (RESETEADO)";
+            statusDer.textContent = "EN ESPERA...";
+            btnIniciar.disabled = false;
+        }
+
+
+        // --- 5. SECUENCIA AUTOMÁTICA ---
         async function iniciarSecuenciaCompleta() {
-            // Validaciones
             const raw = listaIzq.value.trim().split('\n').filter(x => x.trim() !== '');
             const limite = parseInt(inputLimite.value) || 5;
             if (raw.length === 0) { alert("Lista vacía"); return; }
 
+            backupListaIzq = listaIzq.value;
+            backupListaDer = listaDer.value;
+
+            enCurso = true;
             btnIniciar.disabled = true;
+            btnReset.disabled = true;
 
             // --- FASE 1: SORTEO VILLA ---
             let bolsaJuego = [...raw];
@@ -332,7 +470,9 @@ E 120</textarea>
                 ganadores.push(ganador);
                 
                 const li = document.createElement('li');
-                const hora = HORAS_VILLA_IZQ[indexVilla] || "--:--";
+                // USAMOS EL ARRAY DINÁMICO
+                const hora = horasVillaActuales[indexVilla] || "---";
+                
                 li.innerHTML = `<span class="hora-villa">${hora}</span> <span class="num-villa">${ganador}</span>`;
                 ulVilla.appendChild(li);
                 indexVilla++;
@@ -342,7 +482,7 @@ E 120</textarea>
             }
             statusIzq.textContent = "¡VILLA FINALIZADO!";
             
-            // --- TRANSFERENCIA A DERECHA ---
+            // Transferencia
             let textoPrevio = listaDer.value.trim();
             let nuevos = bolsaJuego.join('\n');
             if (textoPrevio !== "") listaDer.value = textoPrevio + "\n" + nuevos;
@@ -350,34 +490,26 @@ E 120</textarea>
             
             listaIzq.value = ganadores.join('\n');
 
-            // --- FASE 2: RUTA D (LÓGICA DE SALTO) ---
+            // --- FASE 2: RUTA D ---
             statusDer.textContent = "Iniciando RUTA D...";
             await new Promise(r => setTimeout(r, 1000));
 
             let bolsaPrincipal = listaDer.value.trim().split('\n').filter(x => x.trim() !== '');
             
             if (bolsaPrincipal.length > 0) {
-                // Iteramos mientras haya números Y no se acabe la tabla
                 while (bolsaPrincipal.length > 0 && indexTabla < HORARIO_MAESTRO.length) {
                     
-                    // PASO CRÍTICO: ¿Está bloqueada la fila actual?
                     if (HORARIO_MAESTRO[indexTabla].lock === true) {
-                        // Si está bloqueada (verde), LA SALTAMOS y seguimos al siguiente índice
                         indexTabla++;
-                        continue; // Vuelve al inicio del while
+                        continue; 
                     }
 
-                    // Si NO está bloqueada, sorteamos
                     const ganadorD = await animarVisor(visorDer, bolsaPrincipal);
 
                     const celda = document.getElementById(`celda-${indexTabla}`);
-                    if (celda) {
-                        celda.textContent = ganadorD;
-                        // Aseguramos que se vea (ya es blanca por defecto si no tiene lock)
-                    }
-                    indexTabla++; // Avanzamos al siguiente slot
+                    if (celda) celda.textContent = ganadorD;
+                    indexTabla++; 
 
-                    // Quitar de bolsa
                     const idxD = bolsaPrincipal.indexOf(ganadorD);
                     if (idxD > -1) bolsaPrincipal.splice(idxD, 1);
                     listaDer.value = bolsaPrincipal.join('\n');
@@ -388,6 +520,9 @@ E 120</textarea>
             } else {
                 statusDer.textContent = "No hay excedentes.";
             }
+
+            enCurso = false;
+            btnReset.disabled = false;
         }
 
         // --- ANIMACIÓN ---
