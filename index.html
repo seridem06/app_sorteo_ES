@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sorteo VILLA y RUTA D - Control Total</title>
+    <title>Sorteo RUTA D - Lógica de Bloqueo</title>
     <style>
-        /* --- ESTILOS VISUALES (Estructura de 4 Columnas) --- */
+        /* --- ESTILOS GENERALES --- */
         body {
             font-family: 'Arial', sans-serif;
             background-color: #ffffff;
@@ -23,7 +23,7 @@
             gap: 20px;
         }
 
-        /* --- COLUMNA 1: INPUT VILLA --- */
+        /* --- COLUMNA 1: CONTROLES VILLA --- */
         .columna-control {
             width: 240px;
             display: flex;
@@ -32,7 +32,7 @@
         }
 
         .panel-gris {
-            background-color: #dcdcdc; /* Gris clásico */
+            background-color: #dcdcdc;
             border: 2px solid #000;
             padding: 10px;
             display: flex;
@@ -61,7 +61,7 @@
         }
 
         .status-text {
-            color: #dc3545; /* Rojo */
+            color: #dc3545;
             font-weight: bold;
             text-align: center;
             margin: 10px 0;
@@ -82,8 +82,8 @@
         .btn-azul:disabled { background-color: #999; cursor: not-allowed; }
         .btn-azul:hover:not(:disabled) { background-color: #0056b3; }
 
-        /* VISOR E34 */
-        .visor-e34 {
+        /* VISOR DE ANIMACIÓN */
+        .visor-animacion {
             border: 2px solid #007bff;
             background-color: #fff;
             height: 70px;
@@ -92,15 +92,15 @@
             justify-content: center;
             font-size: 32px;
             font-weight: bold;
-            color: #28a745; /* Verde */
+            color: #28a745;
             width: 180px;
             align-self: center;
             box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
         }
 
-        /* --- COLUMNA 2: RESULTADOS VILLA (CON HORAS) --- */
+        /* --- COLUMNA 2: RESULTADOS VILLA --- */
         .columna-villa {
-            width: 140px; /* Un poco más ancha para la hora */
+            width: 140px;
             border: 2px solid #000;
             min-height: 480px;
             background: #fff;
@@ -126,11 +126,14 @@
         .hora-villa { font-weight: bold; color: #555; }
         .num-villa { font-weight: bold; color: #000; }
 
-        /* --- COLUMNA 3: TABLA RUTA D --- */
+        /* --- COLUMNA 3: TABLA RUTA D (LÓGICA BLOQUEO) --- */
         .columna-tabla {
-            width: 220px;
+            width: 240px;
             border: 3px solid #000;
             background: #fff;
+            /* Scroll si la lista es muy larga */
+            max-height: 800px; 
+            overflow-y: auto;
         }
         .header-tabla {
             text-align: center;
@@ -138,26 +141,33 @@
             border-bottom: 2px solid #000;
             padding: 5px;
             background: #fff;
+            position: sticky;
+            top: 0;
         }
-        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
         td {
-            border: 1px solid #333;
-            padding: 3px;
+            border: 1px solid #000;
+            padding: 2px 4px;
             text-align: center;
-            height: 20px;
+            height: 22px;
             font-weight: bold;
         }
-        /* Colores Tabla */
-        .txt-azul { color: #007bff; }
-        .txt-rojo { color: #cc0000; }
-        .celda-ganador { background-color: #fff; color: #000; font-weight: normal; }
-        .celda-llena { background-color: #fff3cd; } /* Opcional: Resaltar al llenar */
+        
+        /* Colores de Texto */
+        .txt-azul { color: #0056b3; font-weight: bold; }
+        .txt-rojo { color: #d90000; font-weight: bold; }
+        
+        /* ESTADOS DE CELDA */
+        .celda-normal { background-color: #fff; color: #000; }
+        .celda-bloqueada { 
+            background-color: #00b050; /* Verde Imagen */
+            color: transparent; 
+        }
 
-        /* --- COLUMNA 4: SORTEO PRINCIPAL (EDITABLE) --- */
+        /* --- COLUMNA 4: SORTEO PRINCIPAL --- */
         .columna-derecha {
             width: 240px;
         }
-        /* Panel derecho más alto para acomodar todo */
         .panel-derecho {
             height: 480px;
             justify-content: space-between;
@@ -167,7 +177,7 @@
 </head>
 <body>
 
-    <h2>Programa de Sorteo (Input Editable y Rutas Intercaladas)</h2>
+    <h2>Programa de Sorteo (Lógica de Bloqueo 7:25 - 9:05)</h2>
 
     <div class="contenedor-maestro">
 
@@ -191,19 +201,16 @@ E 120</textarea>
                 
                 <div id="status-izq" class="status-text">LISTO: 5 a VILLA</div>
                 
-                <button id="btn-villa" class="btn-azul" onclick="iniciarSorteoVilla()">SORTEAR 1 (VILLA)</button>
+                <button id="btn-iniciar" class="btn-azul" onclick="iniciarSecuenciaCompleta()">SORTEAR 1 (VILLA)</button>
             </div>
 
-            <div class="visor-e34" id="visor-izq">E 34</div>
+            <div class="visor-animacion" id="visor-izq"></div>
         </div>
-
 
         <div class="columna-villa">
             <div class="titulo-lista">VILLA</div>
-            <ul id="lista-villa">
-                </ul>
+            <ul id="lista-villa"></ul>
         </div>
-
 
         <div class="columna-tabla">
             <div class="header-tabla">RUTA D</div>
@@ -213,20 +220,16 @@ E 120</textarea>
             </table>
         </div>
 
-
         <div class="columna-derecha">
             <div class="panel-gris panel-derecho">
                 <div>
                     <div class="label-input">SORTEO PRINCIPAL (RUTA D)</div>
-                    <textarea id="lista-der" class="textarea-lista" style="height: 220px;" placeholder="Los excedentes aparecerán aquí automáticamente. Puedes escribir más."></textarea>
+                    <textarea id="lista-der" class="textarea-lista" style="height: 220px;" placeholder="Excedentes aquí..."></textarea>
                 </div>
 
                 <div style="display: flex; flex-direction: column; gap: 10px; align-items: center;">
-                    <div id="status-der" class="status-text" style="font-size: 12px;">ESPERANDO DATOS</div>
-                    
-                    <div class="visor-e34" id="visor-der" style="width: 100%;">E 34</div>
-                    
-                    <button id="btn-principal" class="btn-azul" onclick="iniciarSorteoPrincipal()" disabled>SORTEAR PRINCIPAL</button>
+                    <div id="status-der" class="status-text" style="font-size: 12px;">EN ESPERA...</div>
+                    <div class="visor-animacion" id="visor-der" style="width: 100%;"></div>
                 </div>
             </div>
         </div>
@@ -234,215 +237,178 @@ E 120</textarea>
     </div>
 
     <script>
-        // --- DATOS FIJOS ---
-        // Horas específicas para VILLA (Recuperadas del código original)
-        const HORAS_VILLA = [
+        // --- 1. DEFINICIÓN DEL HORARIO COMPLETO Y BLOQUEOS ---
+        // 'lock: true' significa celda verde (se salta).
+        const HORARIO_MAESTRO = [
+            {t:'VILLA', h:'5:25', lock: false}, {t:'D', h:'5:35', lock: false},
+            {t:'VILLA', h:'5:45', lock: false}, {t:'D', h:'5:55', lock: false},
+            {t:'VILLA', h:'6:05', lock: false}, {t:'D', h:'6:15', lock: false},
+            {t:'VILLA', h:'6:25', lock: false}, {t:'D', h:'6:35', lock: false},
+            {t:'VILLA', h:'6:45', lock: false}, {t:'D', h:'6:55', lock: false},
+            {t:'VILLA', h:'7:05', lock: false}, {t:'D', h:'7:15', lock: false},
+            
+            // --- ZONA DE BLOQUEO (RETORNO) ---
+            {t:'VILLA', h:'7:25', lock: true},  // Bloqueado
+            {t:'D',     h:'7:35', lock: false}, // Pasa
+            {t:'VILLA', h:'7:45', lock: true},  // Bloqueado
+            {t:'D',     h:'7:55', lock: false}, // Pasa
+            {t:'VILLA', h:'8:05', lock: true},  // Bloqueado
+            {t:'D',     h:'8:15', lock: false}, // Pasa
+            {t:'VILLA', h:'8:25', lock: true},  // Bloqueado
+            {t:'D',     h:'8:35', lock: false}, // Pasa
+            {t:'VILLA', h:'8:45', lock: true},  // Bloqueado
+            {t:'D',     h:'8:55', lock: false}, // Pasa
+            {t:'VILLA', h:'9:05', lock: true},  // Bloqueado
+            
+            // --- RETORNO A NORMALIDAD ---
+            {t:'D',     h:'9:15', lock: false},
+            {t:'VILLA', h:'9:25', lock: false}, {t:'D', h:'9:35', lock: false},
+            {t:'VILLA', h:'9:45', lock: false}, {t:'D', h:'9:55', lock: false},
+            {t:'VILLA', h:'10:05', lock: false},{t:'D', h:'10:15', lock: false},
+            {t:'VILLA', h:'10:25', lock: false},{t:'D', h:'10:35', lock: false}
+        ];
+
+        const HORAS_VILLA_IZQ = [
             "5:48", "6:02", "6:16", "6:30", "6:44",
             "7:00", "7:14", "7:28", "7:42", "7:56",
             "8:10", "8:24", "8:38", "8:52", "9:06"
         ];
 
-        // Horario intercalado para RUTA D
-        const HORARIO_TABLA = [
-            {t:'VILLA', h:'5:25'}, {t:'D', h:'5:35'}, {t:'VILLA', h:'5:45'}, {t:'D', h:'5:55'},
-            {t:'VILLA', h:'6:05'}, {t:'D', h:'6:15'}, {t:'VILLA', h:'6:25'}, {t:'D', h:'6:35'},
-            {t:'VILLA', h:'6:45'}, {t:'D', h:'6:55'}, {t:'VILLA', h:'7:05'}, {t:'D', h:'7:15'},
-            {t:'VILLA', h:'7:25'}, {t:'D', h:'7:35'}, {t:'VILLA', h:'7:45'}, {t:'D', h:'7:55'},
-            {t:'VILLA', h:'8:05'}, {t:'D', h:'8:15'}, {t:'VILLA', h:'8:25'}, {t:'D', h:'8:35'},
-            {t:'VILLA', h:'8:45'}, {t:'D', h:'8:55'}, {t:'VILLA', h:'9:05'}, {t:'D', h:'9:15'},
-            {t:'VILLA', h:'9:25'}, {t:'D', h:'9:35'}, {t:'VILLA', h:'9:45'}, {t:'D', h:'9:55'},
-            {t:'VILLA', h:'10:05'}, {t:'D', h:'10:15'}, {t:'VILLA', h:'10:25'}, {t:'D', h:'10:35'}
-        ];
-
-        // --- ELEMENTOS DOM ---
+        // --- REFERENCIAS ---
         const listaIzq = document.getElementById('lista-izq');
         const listaDer = document.getElementById('lista-der');
         const ulVilla = document.getElementById('lista-villa');
         const bodyTabla = document.getElementById('body-tabla');
-        const btnVilla = document.getElementById('btn-villa');
-        const btnPrincipal = document.getElementById('btn-principal');
+        const btnIniciar = document.getElementById('btn-iniciar');
         const visorIzq = document.getElementById('visor-izq');
         const visorDer = document.getElementById('visor-der');
         const statusIzq = document.getElementById('status-izq');
         const statusDer = document.getElementById('status-der');
         const inputLimite = document.getElementById('input-limite');
 
-        // Variables de estado
-        let enCurso = false;
-        let bolsaPrincipal = [];
         let indexTabla = 0;
         let indexVilla = 0;
 
-        // --- INICIO: PINTAR TABLA VACÍA ---
+        // --- 2. GENERAR TABLA VISUAL ---
         function initTabla() {
             let html = '';
-            HORARIO_TABLA.forEach((item, i) => {
-                const color = item.t === 'VILLA' ? 'txt-azul' : 'txt-rojo';
+            HORARIO_MAESTRO.forEach((item, i) => {
+                // Definir colores texto
+                const claseTexto = item.t === 'VILLA' ? 'txt-azul' : 'txt-rojo';
+                
+                // Definir estado celda (Bloqueada o Normal)
+                const claseCelda = item.lock ? 'celda-bloqueada' : 'celda-normal';
+                
                 html += `<tr>
-                    <td class="${color}">${item.t}</td>
-                    <td class="${color}">${item.h}</td>
-                    <td id="celda-${i}" class="celda-ganador"></td>
+                    <td class="${claseTexto}">${item.t}</td>
+                    <td class="${claseTexto}">${item.h}</td>
+                    <td id="celda-${i}" class="${claseCelda}"></td>
                 </tr>`;
             });
             bodyTabla.innerHTML = html;
         }
         initTabla();
 
-        // --- FUNCIONES DE SORTEO ---
-
-        // 1. SORTEO VILLA (Izquierda)
-        async function iniciarSorteoVilla() {
-            if (enCurso) return;
+        // --- 3. SECUENCIA AUTOMÁTICA ---
+        async function iniciarSecuenciaCompleta() {
+            // Validaciones
             const raw = listaIzq.value.trim().split('\n').filter(x => x.trim() !== '');
             const limite = parseInt(inputLimite.value) || 5;
-
             if (raw.length === 0) { alert("Lista vacía"); return; }
 
-            enCurso = true;
-            btnVilla.disabled = true;
-            btnPrincipal.disabled = true; // Bloqueamos el otro mientras tanto
-            
+            btnIniciar.disabled = true;
+
+            // --- FASE 1: SORTEO VILLA ---
             let bolsaJuego = [...raw];
             let ganadores = [];
-
-            // Limpiar resultados anteriores
             ulVilla.innerHTML = '';
             indexVilla = 0;
 
-            // CICLO DE SORTEO VILLA
             for (let i = 0; i < limite; i++) {
                 if (bolsaJuego.length === 0) break;
+                statusIzq.textContent = `Sorteando ${i+1}/${limite}...`;
                 
-                statusIzq.textContent = `Sorteando ${i+1} de ${limite}...`;
-                
-                // Animación
                 const ganador = await animarVisor(visorIzq, bolsaJuego);
-                
-                // Guardar y mostrar
                 ganadores.push(ganador);
-                agregarResultadoVilla(ganador); // Función auxiliar con hora
                 
-                // Eliminar de la bolsa temporal
+                const li = document.createElement('li');
+                const hora = HORAS_VILLA_IZQ[indexVilla] || "--:--";
+                li.innerHTML = `<span class="hora-villa">${hora}</span> <span class="num-villa">${ganador}</span>`;
+                ulVilla.appendChild(li);
+                indexVilla++;
+                
                 const idx = bolsaJuego.indexOf(ganador);
                 if (idx > -1) bolsaJuego.splice(idx, 1);
             }
-
-            // FINALIZAR VILLA
-            visorIzq.textContent = "E 34";
             statusIzq.textContent = "¡VILLA FINALIZADO!";
             
-            // --- TRANSFERENCIA DE EXCEDENTES (AUTOMÁTICA) ---
-            // Ponemos los excedentes en el cuadro derecho
-            // OJO: Usamos "value" para que el usuario pueda editarlo después.
-            // Si ya había algo escrito manualmente antes en la derecha, decidimos si sobrescribir o añadir.
-            // Para "flujo limpio", sobrescribimos o añadimos al final. Aquí: Sobrescribimos con los excedentes.
-            if (listaDer.value.trim() !== "") {
-                listaDer.value += "\n" + bolsaJuego.join('\n');
-            } else {
-                listaDer.value = bolsaJuego.join('\n');
-            }
-
-            // Actualizamos la lista visual izquierda para mostrar solo ganadores (limpieza)
+            // --- TRANSFERENCIA A DERECHA ---
+            let textoPrevio = listaDer.value.trim();
+            let nuevos = bolsaJuego.join('\n');
+            if (textoPrevio !== "") listaDer.value = textoPrevio + "\n" + nuevos;
+            else listaDer.value = nuevos;
+            
             listaIzq.value = ganadores.join('\n');
 
-            enCurso = false;
+            // --- FASE 2: RUTA D (LÓGICA DE SALTO) ---
+            statusDer.textContent = "Iniciando RUTA D...";
+            await new Promise(r => setTimeout(r, 1000));
+
+            let bolsaPrincipal = listaDer.value.trim().split('\n').filter(x => x.trim() !== '');
             
-            // Habilitar el segundo botón si hay datos en la derecha
-            if (listaDer.value.trim() !== "") {
-                btnPrincipal.disabled = false;
-                statusDer.textContent = "LISTO: Revisa y Sortea";
-            } else {
-                statusDer.textContent = "Sin datos";
-            }
-        }
-
-        // Auxiliar: Pinta hora y numero en lista Villa
-        function agregarResultadoVilla(numero) {
-            const li = document.createElement('li');
-            const hora = HORAS_VILLA[indexVilla] || "---";
-            li.innerHTML = `<span class="hora-villa">${hora}</span> <span class="num-villa">${numero}</span>`;
-            ulVilla.appendChild(li);
-            indexVilla++;
-        }
-
-
-        // 2. SORTEO PRINCIPAL (Derecha)
-        async function iniciarSorteoPrincipal() {
-            if (enCurso) return;
-            
-            // Leemos el textarea por si el usuario editó o añadió números
-            const raw = listaDer.value.trim().split('\n').filter(x => x.trim() !== '');
-            if (raw.length === 0) { alert("No hay números para sortear."); return; }
-
-            enCurso = true;
-            btnPrincipal.disabled = true;
-            btnVilla.disabled = true;
-
-            bolsaPrincipal = [...raw]; // Copia para jugar
-
-            // CICLO DE LLENADO DE TABLA
-            // Sorteamos hasta vaciar la bolsa o llenar la tabla
-            while (bolsaPrincipal.length > 0 && indexTabla < HORARIO_TABLA.length) {
-                // Animación
-                const ganador = await animarVisor(visorDer, bolsaPrincipal);
-
-                // Pintar en tabla
-                const celda = document.getElementById(`celda-${indexTabla}`);
-                if (celda) {
-                    celda.textContent = ganador;
-                    celda.classList.add('celda-llena');
-                }
-                indexTabla++;
-
-                // Eliminar de bolsa
-                const idx = bolsaPrincipal.indexOf(ganador);
-                if (idx > -1) bolsaPrincipal.splice(idx, 1);
-
-                // Actualizar textarea (efecto visual de que se consumen)
-                listaDer.value = bolsaPrincipal.join('\n');
-            }
-
-            visorDer.textContent = "E 34";
-            enCurso = false;
-
             if (bolsaPrincipal.length > 0) {
-                statusDer.textContent = "¡Tabla llena! Sobran números.";
-                btnPrincipal.disabled = false; // Permitir seguir si se limpiara la tabla o lógica extra
+                // Iteramos mientras haya números Y no se acabe la tabla
+                while (bolsaPrincipal.length > 0 && indexTabla < HORARIO_MAESTRO.length) {
+                    
+                    // PASO CRÍTICO: ¿Está bloqueada la fila actual?
+                    if (HORARIO_MAESTRO[indexTabla].lock === true) {
+                        // Si está bloqueada (verde), LA SALTAMOS y seguimos al siguiente índice
+                        indexTabla++;
+                        continue; // Vuelve al inicio del while
+                    }
+
+                    // Si NO está bloqueada, sorteamos
+                    const ganadorD = await animarVisor(visorDer, bolsaPrincipal);
+
+                    const celda = document.getElementById(`celda-${indexTabla}`);
+                    if (celda) {
+                        celda.textContent = ganadorD;
+                        // Aseguramos que se vea (ya es blanca por defecto si no tiene lock)
+                    }
+                    indexTabla++; // Avanzamos al siguiente slot
+
+                    // Quitar de bolsa
+                    const idxD = bolsaPrincipal.indexOf(ganadorD);
+                    if (idxD > -1) bolsaPrincipal.splice(idxD, 1);
+                    listaDer.value = bolsaPrincipal.join('\n');
+                }
+                
+                if (bolsaPrincipal.length > 0) statusDer.textContent = "Tabla llena (sobran números)";
+                else statusDer.textContent = "¡FINALIZADO!";
             } else {
-                statusDer.textContent = "¡FINALIZADO!";
-                btnPrincipal.disabled = true; // Ya no hay nada que sortear
+                statusDer.textContent = "No hay excedentes.";
             }
-            
-            // Habilitar el de Villa por si quieren reiniciar todo manualmente (opcional)
-            // btnVilla.disabled = false; 
         }
 
-
-        // --- UTILIDAD: ANIMACIÓN ---
+        // --- ANIMACIÓN ---
         function animarVisor(visor, lista) {
             return new Promise(resolve => {
                 let contador = 0;
-                const totalVueltas = 15;
-                const intervaloTiempo = 50; // Rapidez
-
+                const vueltas = 15;
+                const intervalo = 40; 
                 const timer = setInterval(() => {
                     const random = lista[Math.floor(Math.random() * lista.length)];
                     visor.textContent = random;
-                    // Color verde siempre
-                    visor.style.color = '#28a745';
-                    
                     contador++;
-                    if (contador >= totalVueltas) {
+                    if (contador >= vueltas) {
                         clearInterval(timer);
-                        // Ganador final real
                         const final = lista[Math.floor(Math.random() * lista.length)];
                         visor.textContent = final;
                         resolve(final);
                     }
-                }, intervaloTiempo);
+                }, intervalo);
             });
         }
-
     </script>
 </body>
 </html>
