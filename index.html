@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sorteo con Rutas y Colores Intercalados</title>
+    <style>
+        /* --- Estilos Base y Contenedor Principal (Alineado a la Izquierda) --- */
+        body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            background-color: #ffffff;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+
+        /* Contenedor principal que engloba AMBOS grupos (Izquierda y Derecha) */
+        #contenedor-principal {
+            display: flex;
+            gap: 50px;
+            align-items: flex-start;
+        }
+
+        /* Contenedor del Sorteo 1 (Izquierda: CANTIDAD, VILLA) */
+        .contenedor-grupo-izquierda {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+        
+        /* Contenedor del Sorteo Principal (Derecha: RUTA D, SORTEO PRINCIPAL) */
+        .contenedor-grupo-derecha {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        /* Estilo base para todos los cuadros */
+        .cuadro {
+            border: 2px solid #000000;
+            box-sizing: border-box;
+            padding: 10px;
+        }
+        
+        /* --- Estilos de CANTIDAD y VILLA (Izquierda) --- */
+
+        /* CUADRO CANTIDAD (Input/Control) */
+        #cuadro-cantidad {
+            background-color: #dcdcdc;
+            width: 250px;
+            padding-top: 5px;
+        }
+        #input-limite {
+            width: 50px;
+            padding: 5px;
+            margin-bottom: 10px;
+            border: 1px solid #333;
+            text-align: center;
+        }
+        .lista-ingreso {
+            width: 100%;
+            height: 150px;
+            border: 1px solid #333;
+            resize: none;
+            padding: 5px;
+            box-sizing: border-box;
+            font-size: 1em;
+            line-height: 1.5;
+            margin-bottom: 10px;
+        }
+        
+        /* Estilo del botón SORTEAR */
+        .btn-sortear {
+            width: 100%;
+            padding: 10px;
+            font-size: 1.1em;
+            font-weight: bold;
+            color: white;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-top: 5px;
+        }
+        .btn-sortear:hover {
+            background-color: #0056b3;
+        }
+        
+        /* CUADRO E 34 (Pasarela/Display) */
+        .cuadro-e34 {
+            border: 2px solid #007bff;
+            background-color: #ffffff;
+            width: 150px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2em;
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        /* CUADRO VILLA (Resultados) */
+        #cuadro-villa {
+            width: 120px;
+            height: 350px;
+            background-color: #ffffff;
+        }
+        #lista-villa {
+            padding: 0;
+            list-style: none;
+            margin: 5px 0 0 0;
+        }
+        #lista-villa li {
+            font-size: 1em;
+            padding: 2px 0;
+            display: flex;
+            justify-content: space-between; 
+            border-bottom: 1px dashed #eee;
+        }
+
+        /* --- Estilos específicos para VILLA (Sorteo 1) --- */
+        /* Nota: Para el Sorteo 1 solo se muestra la hora y el número, sin la ruta VILLA explícita. */
+        .hora-sorteo {
+            font-weight: bold;
+            color: #555;
+            margin-right: 5px;
+            border-bottom: 1px solid #333;
+        }
+        .numero-ganador {
+            font-weight: normal;
+        }
+
+        /* --- Estilos específicos para RUTA D (Sorteo Principal) --- */
+        .ruta-d-item {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+        }
+        .ruta-d-hora-villa {
+            font-weight: bold;
+            color: #007bff; /* Azul para VILLA en la tabla D */
+            margin-right: 5px;
+            border-bottom: 1px solid #333;
+        }
+        .ruta-d-hora-d {
+            font-weight: bold;
+            color: #cc0000; /* Rojo para D en la tabla D */
+            margin-right: 5px;
+            border-bottom: 1px solid #333;
+        }
+        .ruta-d-numero {
+            font-weight: normal;
+            /* El color del número lo dejamos negro por defecto */
+        }
+
+
+        /* Status Display */
+        .status-display {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #dc3545;
+            margin: 10px 0;
+            text-align: center;
+        }
+
+        /* --- Estilos de RUTA D y SORTEO PRINCIPAL (Derecha) --- */
+        
+        /* CUADRO RUTA D (Resultados Principal) */
+        #cuadro-ruta-d {
+            width: 180px; /* Aumentamos el ancho para que quepa la ruta + hora + número */
+            height: 350px;
+            background-color: #ffffff;
+        }
+        #lista-ruta-d {
+            padding: 0;
+            list-style: none;
+            margin: 5px 0 0 0;
+        }
+        #lista-ruta-d li {
+            font-size: 1em;
+            padding: 2px 0;
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px dashed #eee;
+        }
+
+        /* CUADRO SORTEO PRINCIPAL (Input y Controles) */
+        #cuadro-sorteo-principal {
+            background-color: #dcdcdc;
+            width: 250px;
+            height: 350px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        
+        /* Contenedor para el E34 principal y sus controles */
+        .controles-principal {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+    </style>
+</head>
+<body>
+
+    <h2>Programa de Sorteo (Input Editable y Rutas Intercaladas)</h2>
+
+    <div id="contenedor-principal">
+        
+        <div class="contenedor-grupo-izquierda">
+            <div style="display: flex; flex-direction: column;">
+                <div id="cuadro-cantidad" class="cuadro">
+                    <label for="input-limite">CANTIDAD a sortear (VILLA):</label>
+                    <input type="number" id="input-limite" value="5" min="1">
+                    
+                    <textarea id="lista-ingreso-1" class="lista-ingreso" placeholder="Números a sortear (Los excedentes van a RUTA D)"></textarea>
+                    
+                    <div id="status-display-1" class="status-display">LISTO</div>
+                    
+                    <button id="btn-preparar" class="btn-sortear" style="background-color: gray;" onclick="prepararListas()">PREPARAR LISTAS</button>
+                    <button id="btn-sortear-1" class="btn-sortear" onclick="iniciarSorteo('sorteo1')" disabled>SORTEAR 1 (VILLA)</button>
+                </div>
+                
+                <div id="cuadro-e34-1" class="cuadro cuadro-e34" style="margin-top: 20px;">E 34</div>
+            </div>
+
+            <div id="cuadro-villa" class="cuadro">
+                <h4 style="margin: 0 0 5px 0; text-align: center;">VILLA</h4>
+                <ul id="lista-villa">
+                    </ul>
+            </div>
+        </div>
+
+        <div class="contenedor-grupo-derecha">
+            
+            <div id="cuadro-ruta-d" class="cuadro">
+                <h4 style="margin: 0 0 5px 0; text-align: center;">RUTA D</h4>
+                <ul id="lista-ruta-d">
+                    </ul>
+            </div>
+
+            <div id="cuadro-sorteo-principal" class="cuadro">
+                <h4 style="margin: 0 0 5px 0;">SORTEO PRINCIPAL (RUTA D)</h4>
+                
+                <textarea id="lista-ingreso-principal" class="lista-ingreso" style="height: 130px;" placeholder="Excedentes y números adicionales aquí"></textarea>
+                
+                <div class="controles-principal">
+                    <div id="cuadro-e34-principal" class="cuadro cuadro-e34">E 34</div>
+                    
+                    <div id="status-display-principal" class="status-display">LISTO</div>
+                    
+                    <button id="btn-sortear-principal" class="btn-sortear" onclick="iniciarSorteo('principal')" disabled>SORTEAR PRINCIPAL (RUTA D)</button>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+
+    <script>
+        // --- Variables Globales y Selectores ---
+        const listaIngreso1 = document.getElementById('lista-ingreso-1');
+        const listaIngresoPrincipal = document.getElementById('lista-ingreso-principal');
+        const inputLimite = document.getElementById('input-limite');
+        const btnSortear1 = document.getElementById('btn-sortear-1');
+        const btnSortearPrincipal = document.getElementById('btn-sortear-principal');
+        const btnPreparar = document.getElementById('btn-preparar');
+        
+        // Sorteo 1 (VILLA)
+        const statusDisplay1 = document.getElementById('status-display-1');
+        const cuadroE34_1 = document.getElementById('cuadro-e34-1');
+        const listaVilla = document.getElementById('lista-villa');
+
+        // Sorteo Principal (RUTA D)
+        const statusDisplayPrincipal = document.getElementById('status-display-principal');
+        const cuadroE34_Principal = document.getElementById('cuadro-e34-principal');
+        const listaRutaD = document.getElementById('lista-ruta-d');
+
+        // --- ARRAYS DE HORAS ---
+        // Horas para VILLA (Sorteo 1 - Tu primera lista)
+        const HORAS_VILLA = [
+            "5:48", "6:02", "6:16", "6:30", "6:44",
+            "7:00", "7:14", "7:28", "7:42", "7:56",
+            "8:10", "8:24", "8:38", "8:52", "9:06"
+        ];
+
+        // Horas y Rutas para RUTA D (Sorteo Principal - Tu lista intercalada)
+        const HORAS_RUTA_D_INTERCALADAS = [
+            { ruta: "VILLA", hora: "5:25", colorClass: "ruta-d-hora-villa" },
+            { ruta: "D", hora: "5:35", colorClass: "ruta-d-hora-d" },
+            { ruta: "VILLA", hora: "5:45", colorClass: "ruta-d-hora-villa" },
+            { ruta: "D", hora: "5:55", colorClass: "ruta-d-hora-d" },
+            { ruta: "VILLA", hora: "6:05", colorClass: "ruta-d-hora-villa" },
+            { ruta: "D", hora: "6:15", colorClass: "ruta-d-hora-d" },
+            { ruta: "VILLA", hora: "6:25", colorClass: "ruta-d-hora-villa" },
+            { ruta: "D", hora: "6:35", colorClass: "ruta-d-hora-d" },
+            { ruta: "VILLA", hora: "6:45", colorClass: "ruta-d-hora-villa" },
+            { ruta: "D", hora: "6:55", colorClass: "ruta-d-hora-d" },
+            { ruta: "VILLA", hora: "7:05", colorClass: "ruta-d-hora-villa" },
+            { ruta: "D", hora: "7:15", colorClass: "ruta-d-hora-d" },
+            { ruta: "VILLA", hora: "7:25", colorClass: "ruta-d-hora-villa" },
+            { ruta: "D", hora: "7:35", colorClass: "ruta-d-hora-d" },
+            { ruta: "VILLA", hora: "7:45", colorClass: "ruta-d-hora-villa" },
+            { ruta: "D", hora: "7:55", colorClass: "ruta-d-hora-d" },
+            { ruta: "VILLA", hora: "8:05", colorClass: "ruta-d-hora-villa" },
+            { ruta: "D", hora: "8:15", colorClass: "ruta-d-hora-d" },
+            { ruta: "VILLA", hora: "8:25", colorClass: "ruta-d-hora-villa" },
+            { ruta: "D", hora: "8:35", colorClass: "ruta-d-hora-d" },
+            { ruta: "VILLA", hora: "8:45", colorClass: "ruta-d-hora-villa" },
+            { ruta: "D", hora: "8:55", colorClass: "ruta-d-hora-d" },
+            { ruta: "VILLA", hora: "9:05", colorClass: "ruta-d-hora-villa" },
+        ];
+        
+        let disponiblesSorteo1 = [];
+        let ganadoresSorteo1 = [];
+        let ganadoresPrincipal = [];
+        let sorteoEnCurso = false;
+        let contadorSorteos = 0; // Para indexar la hora de VILLA
+        let contadorSorteosPrincipal = 0; // Para indexar la hora de RUTA D
+        let participantesOriginales1 = []; 
+
+        // --- Función de PREPARACIÓN (Mueve excedentes y resetea contadores) ---
+        function prepararListas() {
+            if (sorteoEnCurso) return;
+
+            const lineas = listaIngreso1.value.split('\n').filter(linea => linea.trim() !== '');
+            const limite = parseInt(inputLimite.value);
+            
+            if (lineas.length === 0 || isNaN(limite) || limite < 1) {
+                alert('Asegúrate de ingresar números y un límite válido.');
+                return false;
+            }
+
+            // 1. Reiniciar variables de VILLA
+            disponiblesSorteo1.length = 0;
+            ganadoresSorteo1.length = 0;
+            participantesOriginales1.length = 0; 
+            contadorSorteos = 0;
+
+            let excedentes = [];
+            
+            // 2. Dividir listas
+            lineas.forEach((linea, index) => {
+                const item = linea.trim().replace(' ❌', '');
+                
+                if (index < limite) {
+                    disponiblesSorteo1.push(item);
+                } else {
+                    excedentes.push(item);
+                }
+                participantesOriginales1.push(item);
+            });
+
+            // 3. Actualizar visualmente (VILLA)
+            listaVilla.innerHTML = '';
+            cuadroE34_1.textContent = 'E 34';
+            statusDisplay1.textContent = 'LISTO';
+            listaIngreso1.style.color = 'black';
+            
+            // 4. Cargar excedentes en el input de RUTA D (SOLO si está vacío)
+            if (listaIngresoPrincipal.value.trim() === '' || listaIngresoPrincipal.value.trim() === 'Excedentes y números adicionales aquí') {
+                 listaIngresoPrincipal.value = excedentes.join('\n');
+            }
+
+            // 5. Reiniciar RUTA D para el sorteo (usará la lista actual del textarea)
+            listaRutaD.innerHTML = '';
+            cuadroE34_Principal.textContent = 'E 34';
+            ganadoresPrincipal.length = 0;
+            contadorSorteosPrincipal = 0; // Resetear el contador de horas D
+            
+            // 6. Habilitar botones de sorteo si hay números
+            btnSortear1.disabled = (disponiblesSorteo1.length === 0);
+            
+            const disponiblesRutaD = listaIngresoPrincipal.value.split('\n').filter(linea => linea.trim() !== '');
+            btnSortearPrincipal.disabled = (disponiblesRutaD.length === 0);
+            
+            statusDisplay1.textContent = `LISTO: ${disponiblesSorteo1.length} a VILLA`;
+            statusDisplayPrincipal.textContent = `LISTO: ${disponiblesRutaD.length} a RUTA D (Editable)`;
+            
+            return true;
+        }
+
+        // --- Función para pintar los perdedores de rojo (con ❌) del Sorteo 1 ---
+        function pintarPerdedores() {
+            let listaCompleta = [];
+            const limite = parseInt(inputLimite.value);
+            
+            // Aplicar marcas a Villa (solo dentro del límite)
+            participantesOriginales1.slice(0, limite).forEach(item => {
+                if (!ganadoresSorteo1.includes(item)) {
+                    listaCompleta.push(`${item} ❌`);
+                } else {
+                    listaCompleta.push(item);
+                }
+            });
+
+            // Añadir excedentes (sin marcas)
+            listaCompleta = listaCompleta.concat(participantesOriginales1.slice(limite));
+
+            listaIngreso1.value = listaCompleta.join('\n');
+            statusDisplay1.textContent = '¡SORTEO 1 FINALIZADO! Perdedores marcados con ❌.';
+        }
+
+        // --- Función principal que orquesta el sorteo completo ---
+        function iniciarSorteo(tipo) {
+            if (sorteoEnCurso) return;
+
+            let disponibles, statusDisplay, limiteSorteo, listaIngreso;
+
+            if (tipo === 'sorteo1') {
+                if (disponiblesSorteo1.length === 0) {
+                     alert('No hay ítems para sortear en VILLA. Presiona PREPARAR LISTAS.');
+                     return;
+                }
+                disponibles = [...disponiblesSorteo1]; // Usar una copia para el sorteo
+                statusDisplay = statusDisplay1;
+                limiteSorteo = disponibles.length;
+
+            } else if (tipo === 'principal') {
+                listaIngreso = listaIngresoPrincipal.value.split('\n').filter(linea => linea.trim() !== '');
+                if (listaIngreso.length === 0) {
+                     alert('No hay ítems para sortear en RUTA D. Revisa el cuadro SORTEO PRINCIPAL.');
+                     return;
+                }
+                disponibles = listaIngreso; // La lista a sortear es el contenido actual del textarea
+                statusDisplay = statusDisplayPrincipal;
+                limiteSorteo = disponibles.length;
+                ganadoresPrincipal.length = 0;
+                contadorSorteosPrincipal = 0; // Se resetea el contador de horas D al iniciar
+
+            } else {
+                return;
+            }
+            
+            sorteoEnCurso = true;
+            btnSortear1.disabled = true;
+            btnSortearPrincipal.disabled = true;
+            btnPreparar.disabled = true;
+
+            let sorteosRealizados = 0;
+
+            const ejecutarSorteoSecuencial = () => {
+                if (sorteosRealizados >= limiteSorteo || disponibles.length === 0) {
+                    sorteoEnCurso = false;
+                    statusDisplay.textContent = `¡SORTEO ${tipo === 'sorteo1' ? '1' : 'PRINCIPAL'} FINALIZADO!`;
+                    btnPreparar.disabled = false;
+                    
+                    if (tipo === 'sorteo1') {
+                        pintarPerdedores();
+                        const dispRutaD = listaIngresoPrincipal.value.split('\n').filter(linea => linea.trim() !== '');
+                        btnSortearPrincipal.disabled = (dispRutaD.length === 0);
+
+                    } else {
+                         btnSortear1.disabled = (disponiblesSorteo1.length === 0);
+                    }
+                    return;
+                }
+                
+                sorteosRealizados++;
+                if (tipo === 'sorteo1') {
+                    contadorSorteos++;
+                } else {
+                    contadorSorteosPrincipal++; // Se incrementa el contador de horas D
+                }
+                
+                statusDisplay.textContent = `Sorteando... (${sorteosRealizados} / ${limiteSorteo})`;
+                
+                simularPasarela(tipo, disponibles).then(() => {
+                    setTimeout(ejecutarSorteoSecuencial, 500); 
+                });
+            };
+
+            ejecutarSorteoSecuencial();
+        }
+
+
+        // --- Lógica del Sorteo (Paso 2: Pasarela) ---
+        function simularPasarela(tipo, disponibles) {
+            return new Promise((resolve) => {
+                const cuadroE34 = (tipo === 'sorteo1') ? cuadroE34_1 : cuadroE34_Principal;
+
+                if (disponibles.length === 0) {
+                    resolve();
+                    return;
+                }
+
+                const DURACION_PASARELA = 1500;
+                const VELOCIDAD_PASARELA = 60;
+                let tiempoTranscurrido = 0;
+                let intervaloPasarela;
+
+                const cambiarGanador = () => {
+                    const indiceAleatorio = Math.floor(Math.random() * disponibles.length);
+                    cuadroE34.textContent = disponibles[indiceAleatorio];
+                    tiempoTranscurrido += VELOCIDAD_PASARELA;
+
+                    if (tiempoTranscurrido >= DURACION_PASARELA) {
+                        clearInterval(intervaloPasarela);
+                        seleccionarGanador(tipo, disponibles, resolve);
+                    }
+                };
+
+                intervaloPasarela = setInterval(cambiarGanador, VELOCIDAD_PASARELA);
+            });
+        }
+
+        // --- Lógica del Sorteo (Paso 3: Resultado) ---
+        function seleccionarGanador(tipo, disponibles, resolve) {
+            const cuadroE34 = (tipo === 'sorteo1') ? cuadroE34_1 : cuadroE34_Principal;
+            const listaResultados = (tipo === 'sorteo1') ? listaVilla : listaRutaD;
+            const ganadoresArray = (tipo === 'sorteo1') ? ganadoresSorteo1 : ganadoresPrincipal;
+
+            const indiceFinal = Math.floor(Math.random() * disponibles.length);
+            const ganador = disponibles[indiceFinal];
+
+            // 1. Mostrar el resultado final en el E 34
+            cuadroE34.textContent = ganador;
+
+            // 2. Añadir al cuadro de resultados (VILLA o RUTA D)
+            const nuevoGanadorItem = document.createElement('li');
+            
+            if (tipo === 'sorteo1') {
+                // Lógica de hora para VILLA (Sorteo 1)
+                const indiceHora = contadorSorteos - 1; 
+                const horaActual = HORAS_VILLA[indiceHora] || "N/A";
+                // En VILLA solo se muestra la hora, no la ruta (se entiende que es VILLA)
+                nuevoGanadorItem.innerHTML = `<span class="hora-sorteo">${horaActual}</span><span class="numero-ganador">${ganador}</span>`;
+            } else {
+                // Lógica de hora para RUTA D (Sorteo Principal)
+                const indiceInfo = contadorSorteosPrincipal - 1; 
+                const info = HORAS_RUTA_D_INTERCALADAS[indiceInfo] || { ruta: "N/A", hora: "N/A", colorClass: "" };
+                
+                // Aplicar la ruta, la hora y el color específico
+                nuevoGanadorItem.innerHTML = `
+                    <div class="ruta-d-item">
+                        <span class="${info.colorClass}">${info.ruta} ${info.hora}</span>
+                        <span class="ruta-d-numero">${ganador}</span>
+                    </div>
+                `;
+            }
+
+            listaResultados.appendChild(nuevoGanadorItem);
+            ganadoresArray.push(ganador);
+
+            // 3. Eliminar el ganador de la lista de disponibles
+            disponibles.splice(indiceFinal, 1);
+            
+            // 4. Si el principal está en curso, actualizamos la lista de excedentes visualmente
+            if (tipo === 'principal') {
+                listaIngresoPrincipal.value = disponibles.join('\n');
+            }
+            
+            resolve();
+        }
+        
+        // --- Inicialización ---
+        listaIngreso1.value = "E 45\nE 56\nE 33\nE 11\nE 21\nE 60\nE 70\nE 80\nE 90\nE 100\nE 110\nE 120";
+        prepararListas();
+    </script>
+</body>
+</html>
