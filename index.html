@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sorteo Inteligente - Bloqueo Dinámico</title>
+    <title>Sorteo Completo - Contador en Vivo</title>
     <style>
         /* --- ESTILOS GENERALES --- */
         body {
@@ -28,7 +28,7 @@
             width: 240px;
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 10px; /* Reduje un poco el gap para que quepa todo mejor */
         }
 
         .panel-gris {
@@ -47,6 +47,26 @@
             display: flex;
             flex-direction: column;
             gap: 5px;
+        }
+
+        /* NUEVO: PANEL CONTADOR */
+        .panel-contador {
+            background-color: #fff;
+            border: 2px solid #000;
+            padding: 10px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .numero-contador {
+            font-size: 36px;
+            font-weight: bold;
+            color: #007bff; /* Azul vibrante */
+            line-height: 1;
             margin-top: 5px;
         }
 
@@ -225,7 +245,7 @@
 </head>
 <body>
 
-    <h2>Programa de Sorteo (Bloqueo Dinámico por Cantidad)</h2>
+    <h2>Programa de Sorteo (Con Contador de Salida)</h2>
 
     <div class="contenedor-maestro">
 
@@ -271,6 +291,11 @@ E 120</textarea>
                 <div id="msg-horario" style="font-size: 10px; color: green; text-align: center; height: 12px;"></div>
             </div>
 
+            <div class="panel-contador">
+                <div style="font-weight: bold; font-size: 12px; text-transform: uppercase;">Total Números Sorteados</div>
+                <div id="contador-global" class="numero-contador">0</div>
+            </div>
+
         </div>
 
         <div class="columna-villa">
@@ -303,9 +328,7 @@ E 120</textarea>
     </div>
 
     <script>
-        // --- 1. DEFINICIÓN DEL HORARIO MAESTRO (Inicialmente sin bloqueos fijos) ---
-        // 'lock' se calculará dinámicamente según la cantidad ingresada.
-        // Se asume que el bloqueo inicia a las 7:25 (según tus indicaciones previas)
+        // --- 1. DEFINICIÓN DEL HORARIO MAESTRO ---
         const HORARIO_BASE = [
             {t:'VILLA', h:'5:25'}, {t:'D', h:'5:35'},
             {t:'VILLA', h:'5:45'}, {t:'D', h:'5:55'},
@@ -313,7 +336,7 @@ E 120</textarea>
             {t:'VILLA', h:'6:25'}, {t:'D', h:'6:35'},
             {t:'VILLA', h:'6:45'}, {t:'D', h:'6:55'},
             {t:'VILLA', h:'7:05'}, {t:'D', h:'7:15'},
-            // A PARTIR DE AQUI SE APLICA EL BLOQUEO DINAMICO
+            // BLOQUEO DINAMICO
             {t:'VILLA', h:'7:25'}, {t:'D', h:'7:35'},
             {t:'VILLA', h:'7:45'}, {t:'D', h:'7:55'},
             {t:'VILLA', h:'8:05'}, {t:'D', h:'8:15'},
@@ -326,10 +349,8 @@ E 120</textarea>
             {t:'VILLA', h:'10:25'},{t:'D', h:'10:35'}
         ];
         
-        // Copia de trabajo
         let horarioEstado = JSON.parse(JSON.stringify(HORARIO_BASE));
 
-        // Horas para la lista VILLA (Izquierda) - Por defecto
         let horasVillaActuales = [
             "5:48", "6:02", "6:16", "6:30", "6:44",
             "7:00", "7:14", "7:28", "7:42", "7:56",
@@ -351,6 +372,9 @@ E 120</textarea>
         const inputHoraInicio = document.getElementById('input-hora-inicio');
         const inputMinutos = document.getElementById('input-minutos');
         const msgHorario = document.getElementById('msg-horario');
+        
+        // Referencia al contador
+        const contadorGlobalEl = document.getElementById('contador-global');
 
         // Variables de estado
         let indexTabla = 0;
@@ -358,13 +382,13 @@ E 120</textarea>
         let backupListaIzq = "";
         let backupListaDer = "";
         let enCurso = false;
+        let contadorTotalSorteados = 0; // NUEVA VARIABLE
 
         // --- 2. GENERAR TABLA VISUAL ---
         function initTabla() {
             let html = '';
             horarioEstado.forEach((item, i) => {
                 const claseTexto = item.t === 'VILLA' ? 'txt-azul' : 'txt-rojo';
-                // Si item.lock es true, usamos clase bloqueada (verde)
                 const claseCelda = item.lock ? 'celda-bloqueada' : 'celda-normal';
                 
                 html += `<tr>
@@ -375,20 +399,14 @@ E 120</textarea>
             });
             bodyTabla.innerHTML = html;
         }
-        
-        // Inicializar tabla limpia (sin bloqueos aún o por defecto)
         initTabla();
 
-        // --- 3. LÓGICA DE BLOQUEO DINÁMICO ---
+        // --- 3. BLOQUEO DINÁMICO ---
         function aplicarBloqueosPorCantidad() {
             const cantidad = parseInt(inputLimite.value) || 0;
             
-            // Reiniciamos estado base
             horarioEstado = JSON.parse(JSON.stringify(HORARIO_BASE));
             
-            // Buscar índice de inicio del bloqueo (7:25)
-            // Se asume que el bloqueo siempre empieza en la primera VILLA después de 7:15
-            // En nuestra lista base es el índice 12 (7:25)
             let startIndex = -1;
             for(let i=0; i<horarioEstado.length; i++) {
                 if (horarioEstado[i].h === '7:25' && horarioEstado[i].t === 'VILLA') {
@@ -399,31 +417,25 @@ E 120</textarea>
 
             if (startIndex !== -1 && cantidad > 0) {
                 let bloqueadosCount = 0;
-                // Recorremos desde 7:25 hacia adelante
                 for (let i = startIndex; i < horarioEstado.length; i++) {
-                    // Solo bloqueamos si es turno VILLA y aún no alcanzamos la cantidad
                     if (horarioEstado[i].t === 'VILLA') {
                         if (bloqueadosCount < cantidad) {
-                            horarioEstado[i].lock = true; // MARCAR COMO VERDE
+                            horarioEstado[i].lock = true; 
                             bloqueadosCount++;
-                        } else {
-                            // Ya cumplimos la cuota, los siguientes VILLA quedan desbloqueados (false por defecto)
                         }
                     }
                 }
             }
-            
-            // Redibujar la tabla inmediatamente para que el usuario vea los cambios
             initTabla();
         }
 
-        // --- 4. CONFIGURACIÓN HORARIO VILLA (Izquierda) ---
+        // --- 4. CONFIG HORARIO ---
         function generarNuevoHorarioVilla() {
             const inicioStr = inputHoraInicio.value; 
             const intervalo = parseInt(inputMinutos.value);
 
             if (!inicioStr || isNaN(intervalo)) {
-                alert("Hora o intervalo inválidos.");
+                alert("Inválido.");
                 return;
             }
 
@@ -434,8 +446,6 @@ E 120</textarea>
             let nuevasHoras = [];
             for (let i = 0; i < 30; i++) {
                 let h = fechaBase.getHours().toString();
-                // Formato simple 5:XX en lugar de 05:XX si es menor a 10
-                // (Opcional, pero coincide con tu estilo)
                 if (fechaBase.getHours() < 10) h = h; 
                 else h = h.padStart(2, '0');
 
@@ -445,14 +455,14 @@ E 120</textarea>
             }
 
             horasVillaActuales = nuevasHoras;
-            msgHorario.textContent = "¡Horario actualizado!";
+            msgHorario.textContent = "¡Actualizado!";
             setTimeout(() => msgHorario.textContent = "", 2000);
         }
 
         // --- 5. RESETEO ---
         function resetearTodo() {
             if (enCurso) {
-                if(!confirm("¿Reiniciar todo?")) return;
+                if(!confirm("¿Reiniciar?")) return;
                 location.reload(); 
                 return;
             }
@@ -465,11 +475,14 @@ E 120</textarea>
             visorDer.textContent = "";
             indexTabla = 0;
             indexVilla = 0;
+            
+            // RESETEAMOS CONTADOR
+            contadorTotalSorteados = 0;
+            contadorGlobalEl.textContent = "0";
 
-            // Limpiar bloqueos visuales reseteando la tabla
-            aplicarBloqueosPorCantidad(); // Se aplica según el input actual
+            aplicarBloqueosPorCantidad(); 
 
-            statusIzq.textContent = "LISTO (RESETEADO)";
+            statusIzq.textContent = "LISTO";
             statusDer.textContent = "EN ESPERA...";
             btnIniciar.disabled = false;
         }
@@ -480,7 +493,6 @@ E 120</textarea>
             const limite = parseInt(inputLimite.value) || 5;
             if (raw.length === 0) { alert("Lista vacía"); return; }
 
-            // 1. APLICAR BLOQUEOS ANTES DE EMPEZAR (Visualmente)
             aplicarBloqueosPorCantidad();
 
             backupListaIzq = listaIzq.value;
@@ -490,18 +502,22 @@ E 120</textarea>
             btnIniciar.disabled = true;
             btnReset.disabled = true;
 
-            // --- FASE 1: SORTEO VILLA ---
             let bolsaJuego = [...raw];
             let ganadores = [];
             ulVilla.innerHTML = '';
             indexVilla = 0;
 
+            // --- FASE 1: VILLA ---
             for (let i = 0; i < limite; i++) {
                 if (bolsaJuego.length === 0) break;
                 statusIzq.textContent = `Sorteando ${i+1}/${limite}...`;
                 
                 const ganador = await animarVisor(visorIzq, bolsaJuego);
                 ganadores.push(ganador);
+                
+                // ACTUALIZAR CONTADOR
+                contadorTotalSorteados++;
+                contadorGlobalEl.textContent = contadorTotalSorteados;
                 
                 const li = document.createElement('li');
                 const hora = horasVillaActuales[indexVilla] || "---";
@@ -514,7 +530,6 @@ E 120</textarea>
             }
             statusIzq.textContent = "¡VILLA FINALIZADO!";
             
-            // Transferencia
             let textoPrevio = listaDer.value.trim();
             let nuevos = bolsaJuego.join('\n');
             if (textoPrevio !== "") listaDer.value = textoPrevio + "\n" + nuevos;
@@ -522,23 +537,25 @@ E 120</textarea>
             
             listaIzq.value = ganadores.join('\n');
 
-            // --- FASE 2: RUTA D (AUTOMÁTICO) ---
+            // --- FASE 2: RUTA D ---
             statusDer.textContent = "Iniciando RUTA D...";
             await new Promise(r => setTimeout(r, 1000));
 
             let bolsaPrincipal = listaDer.value.trim().split('\n').filter(x => x.trim() !== '');
             
             if (bolsaPrincipal.length > 0) {
-                // Usamos horarioEstado que ya tiene los locks aplicados
                 while (bolsaPrincipal.length > 0 && indexTabla < horarioEstado.length) {
                     
-                    // SI LA CELDA ESTÁ BLOQUEADA (lock == true), LA SALTAMOS
                     if (horarioEstado[indexTabla].lock === true) {
                         indexTabla++;
                         continue; 
                     }
 
                     const ganadorD = await animarVisor(visorDer, bolsaPrincipal);
+
+                    // ACTUALIZAR CONTADOR
+                    contadorTotalSorteados++;
+                    contadorGlobalEl.textContent = contadorTotalSorteados;
 
                     const celda = document.getElementById(`celda-${indexTabla}`);
                     if (celda) celda.textContent = ganadorD;
@@ -563,7 +580,7 @@ E 120</textarea>
         function animarVisor(visor, lista) {
             return new Promise(resolve => {
                 let contador = 0;
-                const vueltas = 12; // Un poco más rápido
+                const vueltas = 12; 
                 const intervalo = 40; 
                 const timer = setInterval(() => {
                     const random = lista[Math.floor(Math.random() * lista.length)];
